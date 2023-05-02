@@ -1,9 +1,22 @@
-﻿#include "framework.h"
+#include "framework.h"
+#include <string>
 #include "MessageListenerWin32.h"
 
 #define MAX_LOADSTRING 100
-constexpr auto Title = L"szWindowClass;essage Listener Win32";
+constexpr auto WM_CUSTOM1 = WM_APP + 0;
+constexpr auto WM_CUSTOM2 = WM_APP + 1;
+constexpr auto EventName1 = L"MessageListenerWin32_EventName1";
+constexpr auto EventName2 = L"MessageListenerWin32_EventName2";
+constexpr auto Title = L"Message Listener Win32";
 constexpr auto WindowClassName = L"MessageListenerWin32_WindowClassName";
+
+struct  MyThreadArg
+{
+    HWND hWnd;
+    HANDLE EventHandle;
+    HDC hdc;
+    bool IsContinue;
+};
 
 HINSTANCE hInst;                                // 現在のインターフェイス
 
@@ -12,6 +25,9 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+DWORD WINAPI ThreadFunc1(LPVOID);
+DWORD WINAPI ThreadFunc2(LPVOID);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                       _In_opt_ HINSTANCE hPrevInstance,
@@ -88,8 +104,42 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static MyThreadArg thread1Arg, thread2Arg;
+    static HANDLE thread1, thread2;
+    static DWORD thread1Id, thread2Id;
+    static HDC hdc;
+
     switch (message)
     {
+        case WM_CREATE:
+        {
+            hdc = GetDC(hWnd);
+            thread1Arg = {
+                hWnd,
+                CreateEventW(nullptr, FALSE, FALSE, EventName1),
+                hdc,
+                true,
+            };
+            thread2Arg = {
+                hWnd,
+                CreateEventW(nullptr, FALSE, FALSE, EventName2),
+                hdc,
+                true,
+            };
+            thread1 = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)ThreadFunc1, &thread1Arg, 0, &thread1Id);
+            thread2 = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)ThreadFunc2, &thread2Arg, 0, &thread2Id);
+            break;
+        }
+        case WM_CUSTOM1:
+        {
+            SetEvent(thread1Arg.EventHandle);
+            break;
+        }
+        case WM_CUSTOM2:
+        {
+            SetEvent(thread2Arg.EventHandle);
+            break;
+        }
         case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -120,6 +170,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         case WM_DESTROY:
         {
+            // スレッドを終了する
+            thread1Arg.IsContinue = false;
+            thread2Arg.IsContinue = false;
+            SetEvent(thread1Arg.EventHandle);
+            SetEvent(thread2Arg.EventHandle);
+            WaitForSingleObject(thread1, INFINITE);
+            WaitForSingleObject(thread2, INFINITE);
+
+            // ハンドルを閉じる
+            CloseHandle(thread1);
+            CloseHandle(thread2);
+
+            // リソース開放
+            ReleaseDC(hWnd, hdc);
+
             PostQuitMessage(0);
             break;
         }
@@ -146,4 +211,38 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             break;
     }
     return (INT_PTR)FALSE;
+}
+
+DWORD WINAPI ThreadFunc1(LPVOID threadArg)
+{
+    auto lpd = reinterpret_cast<MyThreadArg*>(threadArg);
+
+    while (lpd->IsContinue)
+    {
+        WaitForSingleObject(lpd->EventHandle, INFINITE);
+        if (!lpd->IsContinue)
+            break;
+        SetTextColor(lpd->hdc, RGB(255, 0, 0));
+        auto str = std::wstring{ L"WM_CUSTOM1 Received." };
+        TextOutW(lpd->hdc, 5, 5, str.c_str(), str.length());
+    }
+
+    return 0;
+}
+
+DWORD WINAPI ThreadFunc2(LPVOID threadArg)
+{
+    auto lpd = reinterpret_cast<MyThreadArg*>(threadArg);
+
+    while (lpd->IsContinue)
+    {
+        WaitForSingleObject(lpd->EventHandle, INFINITE);
+        if (!lpd->IsContinue)
+            break;
+        SetTextColor(lpd->hdc, RGB(0, 0, 255));
+        auto str = std::wstring{ L"WM_CUSTOM2 Received." };
+        TextOutW(lpd->hdc, 5, 5, str.c_str(), str.length());
+    }
+
+    return 0;
 }
