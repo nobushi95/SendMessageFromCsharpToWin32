@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include <string>
 #include "MessageListenerWin32.h"
 
@@ -90,7 +90,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
-    HWND hWnd = CreateWindowW(WindowClassName, Title, WS_OVERLAPPEDWINDOW,
+    HWND hWnd = CreateWindowW(WindowClassName, Title, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME,
                               CW_USEDEFAULT, CW_USEDEFAULT, 400, 200, nullptr, nullptr, hInstance, nullptr);
 
     if (!hWnd)
