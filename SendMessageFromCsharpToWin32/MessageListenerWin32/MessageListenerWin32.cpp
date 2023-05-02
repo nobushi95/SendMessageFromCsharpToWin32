@@ -2,10 +2,10 @@
 #include "MessageListenerWin32.h"
 
 #define MAX_LOADSTRING 100
+constexpr auto Title = L"szWindowClass;essage Listener Win32";
+constexpr auto WindowClassName = L"MessageListenerWin32_WindowClassName";
 
 HINSTANCE hInst;                                // 現在のインターフェイス
-WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
-WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ クラス名
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -21,8 +21,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_MESSAGELISTENERWIN32, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     if (!InitInstance(hInstance, nCmdShow))
@@ -66,7 +64,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_MESSAGELISTENERWIN32);
-    wcex.lpszClassName = szWindowClass;
+    wcex.lpszClassName = WindowClassName;
     wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
@@ -76,13 +74,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
-    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-                              CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+    HWND hWnd = CreateWindowW(WindowClassName, Title, WS_OVERLAPPEDWINDOW,
+                              CW_USEDEFAULT, CW_USEDEFAULT, 400, 200, nullptr, nullptr, hInstance, nullptr);
 
     if (!hWnd)
-    {
         return FALSE;
-    }
 
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
