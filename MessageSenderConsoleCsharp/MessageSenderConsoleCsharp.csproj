@@ -10,4 +10,8 @@
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="PInvoke.User32" Version="0.7.124" />
+  </ItemGroup>
+
 </Project>
